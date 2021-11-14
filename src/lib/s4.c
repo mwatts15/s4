@@ -47,6 +47,25 @@ typedef struct {
  */
 
 /**
+ * Error codes
+ */
+const char *_err_strs[] = {
+	[S4E_NOERROR] = "S4E_NOERROR: No error to report",
+	[S4E_EXISTS] = "S4E_EXISTS: Tried to open a database with S4_NEW, but the file already exists",
+	[S4E_NOENT] = "S4E_NOENT: Tried to open a database with S4_EXISTS, but it did not exist",
+	[S4E_OPEN] = "S4E_OPEN: fopen failed when trying to open the database. errno has more details",
+	[S4E_MAGIC] = "S4E_MAGIC: Magic number was not correct. Probably not an S4 database",
+	[S4E_VERSION] = "S4E_VERSION: Version number was incorrect",
+	[S4E_INCONS] = "S4E_INCONS: Database is inconsistent.",
+	[S4E_LOGOPEN] = "S4E_LOGOPEN: Could not open log file. See errno for more details",
+	[S4E_LOGREDO] = "S4E_LOGREDO: Could not redo changes in the log. Probably corrupted log",
+	[S4E_DEADLOCK] = "S4E_DEADLOCK: The transaction deadlocked and was aborted",
+	[S4E_EXECUTE] = "S4E_EXECUTE: One of the operations in the transaction failed",
+	[S4E_LOGFULL] = "S4E_LOGFULL: Not enough room in the log for the transaction.",
+	[S4E_READONLY] = "S4E_READONLY: Tried to use s4_add or s4_del on a read-only transaction",
+};
+
+/**
  * Reads strings from a file
  *
  * @param s4 The database to add the strings to
@@ -587,6 +606,10 @@ s4_errno_t s4_errno()
 		return S4E_NOERROR;
 	}
 	return *i;
+}
+
+const char *s4_strerror(void) {
+    return _err_strs[s4_errno()];
 }
 
 /**

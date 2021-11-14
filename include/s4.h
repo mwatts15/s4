@@ -82,6 +82,7 @@ s4_t *s4_open (const char *name, const char **indices, int flags);
 int s4_close (s4_t *s4);
 void s4_sync (s4_t *s4);
 s4_errno_t s4_errno (void);
+const char *s4_strerror (void);
 
 
 /* uuid.c */
