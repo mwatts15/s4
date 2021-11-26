@@ -418,7 +418,6 @@ static int _check_cond (s4_condition_t *cond, void *d)
 			do {
 				s4_sourcepref_t *sp = s4_cond_get_sourcepref (cond);
 				int start, src, best_src = INT_MAX;
-
 				if (null) {
 					key = l->data[i].key;
 				}
@@ -443,6 +442,7 @@ static int _check_cond (s4_condition_t *cond, void *d)
 	return ret;
 }
 
+static int _comp_fetch_res(const void *e1, const void *e2);
 /**
  * Fetches values from an entry
  *
@@ -475,7 +475,7 @@ static s4_resultrow_t *_fetch (s4_t *s4, entry_t *l, s4_fetchspec_t *fs)
 
 		if (flags & S4_FETCH_DATA) {
 			do {
-				int src, start, best_src = INT_MAX;
+				int start;
 
 				if (null && l->size > 0) {
 					fkey = l->data[f].key;
@@ -483,18 +483,30 @@ static s4_resultrow_t *_fetch (s4_t *s4, entry_t *l, s4_fetchspec_t *fs)
 
 				start = _entry_search (l, fkey);
 
+				int *pref_sorted_entries = calloc(l->size, sizeof(int) * 2);
+
+				int nentries = 0;
 				for (f = start; f < l->size && l->data[f].key == fkey; f++) {
-					if ((src = s4_sourcepref_get_priority (sp, l->data[f].src)) < best_src) {
-						best_src = src;
+					int prio = s4_sourcepref_get_priority (sp, l->data[f].src);
+					if (prio < INT_MAX) {
+						/* If there is a source preference, then not being in
+						 * the list of sources means we exclude data from that
+						 * source, which is important because we query for data to remove.
+						 */
+						pref_sorted_entries[2*nentries] = prio;
+						pref_sorted_entries[2*nentries+1] = f;
+						nentries++;
 					}
 				}
-				for (f = start; f < l->size && l->data[f].key == fkey; f++) {
-					if (best_src < INT_MAX &&
-							s4_sourcepref_get_priority (sp, l->data[f].src) == best_src) {
-						result = s4_result_create (result, l->data[f].key,
-								l->data[f].val, l->data[f].src);
-					}
+				/* Sort the entries according to their priority.
+				 * Must be in reverse priority order since s4_result_create
+				 * prepends to its first argument */
+				qsort(pref_sorted_entries, nentries, 2 * sizeof(int), _comp_fetch_res);
+				for (int q = 0; q < nentries; q++) {
+					entry_data_t data = l->data[pref_sorted_entries[2*q+1]];
+					result = s4_result_create (result, data.key, data.val, data.src);
 				}
+				free(pref_sorted_entries);
 			} while (f < l->size && null);
 		}
 
@@ -502,6 +514,10 @@ static s4_resultrow_t *_fetch (s4_t *s4, entry_t *l, s4_fetchspec_t *fs)
 	}
 
 	return row;
+}
+
+static int _comp_fetch_res(const void *e1, const void *e2) {
+	return ((int*)e2)[0] - ((int*)e1)[0];
 }
 
 /**

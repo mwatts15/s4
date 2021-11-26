@@ -37,7 +37,9 @@ static int _get_priority (s4_sourcepref_t *sp, const char *src)
 {
 	int i;
 	for (i = 0; i < sp->spec_count; i++) {
-		if (g_pattern_match_string (sp->specs[i], src)) {
+		/* TODO: consider using g_pattern_spec_match instead since we're
+		 * matching against multiple patterns */
+		if (g_pattern_spec_match_string (sp->specs[i], src)) {
 			return i;
 		}
 	}
